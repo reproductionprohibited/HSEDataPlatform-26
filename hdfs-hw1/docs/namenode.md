@@ -1,137 +1,80 @@
-# NameNode и Secondary NameNode — часть Сабухи
+# Настройка NameNode и Secondary NameNode
 
-## Состав и фактическое размещение
+NameNode запускается на `team-15-nn`, Secondary NameNode — на `team-15-en`.
+Перед настройкой на обоих узлах должны быть установлены Java 17 и Hadoop 3.5.0 в `/opt/hadoop`, создан пользователь `hadoop` и настроены имена узлов.
 
-Hadoop 3.5.0, Java 17, Ubuntu 24.04. Сервисы работают под `hadoop`, административные операции — под `team` с sudo. Hadoop: `/opt/hadoop`; конфиги: `/opt/hadoop/etc/hadoop`.
+## 1. Конфигурация
 
-| Узел | Сервисы |
-|---|---|
-| team-15-nn (10.15.0.11) | NameNode и третий DataNode |
-| team-15-00 (10.15.0.12) | DataNode |
-| team-15-01 (10.15.0.13) | DataNode |
-| team-15-en (10.15.0.10) | Secondary NameNode, управление кластером |
+В `core-site.xml` указан адрес NameNode: `hdfs://team-15-nn:9000`.
+В `hdfs-site.xml` заданы репликация 3 и адрес Secondary NameNode: `team-15-en:9868`.
+Каталоги данных и остальные порты используются стандартные для Hadoop.
 
-Это размещение подтверждено отчетом `hdfs dfsadmin -report` 9 октября 2026 года. Оно отличается от предварительного плана с DataNode на edge.
-
-NameNode RPC: `team-15-nn:9000`; HTTP: `team-15-nn:9870`; Secondary HTTP: `team-15-en:9868`. Secondary создает checkpoint метаданных; автоматического переключения на него при отказе NameNode нет.
-
-Конфиги явно сохраняют используемые сейчас каталоги: NameNode `/tmp/hadoop-hadoop/dfs/name`, DataNode `/tmp/hadoop-hadoop/dfs/data`, Secondary `/tmp/hadoop-hadoop/dfs/namesecondary`. Остановка сервисов их не удаляет. Однако `/tmp` может очищаться ОС: перезагрузка машины не равнозначна перезапуску сервисов. Переход на постоянные каталоги требует отдельного согласованного переноса существующих данных; его эта часть не выполняет.
-
-## Предпосылки и файлы
-
-Java/Hadoop, пользователь `hadoop`, разрешение имен и SSH уже подготовлены частью 1. С edge пользователь hadoop подключается к NameNode по ключу. Обратный SSH с NameNode на edge не требуется. `jps` должен быть доступен в окружении `hadoop`.
-
-- `conf/core-site.xml`, `conf/hdfs-site.xml`: общие настройки. Перед объединением согласовать их с автором DataNode; эти файлы должны иметь одного владельца изменений.
-- `scripts/configure-metadata.sh`: установка конфигов и подготовка каталога без удаления метаданных; под `team` на каждом из двух узлов.
-- `scripts/init-namenode.sh`: первичное форматирование пустого хранилища с явным `--new-cluster`. При наличии `current/VERSION` ничего не форматирует.
-- `scripts/start-namenode.sh`, `scripts/start-secondary.sh`: локальный запуск под `hadoop` на соответствующем узле, повторный запуск пропускается при наличии процесса.
-- `scripts/stop-metadata.sh`: локальная остановка сервиса метаданных с сохранением хранилища.
-
-Команды ниже выполняются из каталога `hdfs-hw1`. Копии для запуска под hadoop размещены на обоих узлах в `/home/hadoop/hw1-sabukhi` и принадлежат hadoop. Административный configure-metadata.sh запускается под team из отдельной копии `/home/team/hw1-sabukhi`; перед использованием установщика эту копию также нужно доставить на NameNode. Домашний каталог team недоступен пользователю hadoop. На edge уже существует проект части 1: объединять файлы, не удаляя его скрипты. Эти локальные скрипты являются модулями для общего deploy.sh; запуск DataNode реализует участник 3.
-
-## Развертывание совершенно нового кластера
-
-1. Подготовить окружение частью 1 и доставить файлы на узлы.
-2. На NameNode и edge под `team`, при остановленных соответствующих сервисах:
+Скопировать папки `conf` и `scripts` из `hdfs-hw1` в `/home/team/hdfs-hw1` на NameNode и edge. При первой настройке сервисы должны быть остановлены.
+На каждом из двух узлов под `team`:
 
 ```bash
-cd /home/team/hw1-sabukhi
+cd /home/team/hdfs-hw1
 bash scripts/configure-metadata.sh
+sudo cp -R /home/team/hdfs-hw1 /home/hadoop/hdfs-hw1
+sudo chown -R hadoop:hadoop /home/hadoop/hdfs-hw1
 ```
 
-3. Только на NameNode под `hadoop`:
+## 2. Запуск NameNode
+
+На `team-15-nn` перейти к пользователю `hadoop`:
 
 ```bash
-cd /home/hadoop/hw1-sabukhi
+sudo -iu hadoop
+```
+
+Затем выполнить:
+
+```bash
+cd /home/hadoop/hdfs-hw1
 bash scripts/init-namenode.sh --new-cluster
 bash scripts/start-namenode.sh
+jps
 ```
 
-Скрипт запрещает форматирование непустого хранилища и работающего NameNode. Для существующего кластера форматирование не является операцией восстановления.
+Форматирование выполняется только для нового пустого хранилища. Если метаданные уже существуют, скрипт пропускает этот шаг.
+В выводе `jps` должен появиться `NameNode`.
 
-4. Запустить три DataNode модулем участника 3. Их конфигурация должна указывать тот же адрес HDFS и согласованные каталоги.
-5. На edge под `hadoop`:
+## 3. Запуск Secondary NameNode
+
+На `team-15-en` перейти к `hadoop` через `sudo -iu hadoop`, затем выполнить:
 
 ```bash
-cd /home/hadoop/hw1-sabukhi
+cd /home/hadoop/hdfs-hw1
 bash scripts/start-secondary.sh
+jps
+```
+
+В выводе должен появиться `SecondaryNameNode`.
+
+## 4. Проверка кластера
+
+После запуска трех DataNode на `team-15-nn`, `team-15-00`, `team-15-01` проверить отчет с edge под `hadoop`:
+
+```bash
 hdfs dfsadmin -report
 ```
 
-Ожидаются 3 Live DataNode с Normal, отсутствие Dead DataNode; перед записью safe mode должен быть OFF. Запущенный процесс Secondary еще не доказывает успешность checkpoint.
+В отчете должны быть три живые DataNode в состоянии Normal, без мертвых узлов.
 
-## Существующий кластер и повторный запуск
-
-На существующих серверах сначала сверить пути командой `hdfs getconf -confKey dfs.namenode.name.dir` и соответствующими параметрами checkpoint. Не заменять конфиги до сверки с участником 3. Установщик меняет конфиги на диске; порядок остановки/запуска всех зависимых сервисов согласует общий скрипт команды.
-
-Для обычного перезапуска используются stop/start, без повторного форматирования. Остановка: Secondary на edge, затем NameNode на team-15-nn. Запуск: NameNode, DataNode при необходимости, Secondary. Изменение конфигурации совмещенного DataNode требует его собственного перезапуска модулем участника 3.
-
-На каждом из двух узлов под hadoop:
-
-```bash
-cd /home/hadoop/hw1-sabukhi
-bash scripts/stop-metadata.sh
-jps
-```
-
-После этого на NameNode выполнить `start-namenode.sh`, на edge — `start-secondary.sh`. Проверить отчет и логи. Дополнительную проверку сохранности файла можно выполнить скриптом участника 4; это внутренний контроль команды.
-
-## Воспроизводимая проверка checkpoint
-
-На edge под hadoop, при доступном NameNode, остановить фоновый Secondary (проверить отсутствие процесса в jps), выполнить разовый checkpoint и вернуть сервис:
-
-```bash
-hdfs --daemon stop secondarynamenode
-jps
-hdfs secondarynamenode -checkpoint force
-hdfs --daemon start secondarynamenode
-jps
-```
-
-Если разовая команда завершилась ошибкой, сохранить вывод, вернуть фоновый сервис командой start и выяснить причину; успех не объявлять. Ожидаемое сообщение успеха: `Checkpoint done. New Image Size: ...` (в Hadoop 3.5.0 может иметь уровень WARN).
-
-Проверить файлы и идентификаторы:
-
-```bash
-cat /tmp/hadoop-hadoop/dfs/namesecondary/current/VERSION
-ls -lh /tmp/hadoop-hadoop/dfs/namesecondary/current/fsimage_*
-ssh hadoop@team-15-nn 'cat /tmp/hadoop-hadoop/dfs/name/current/VERSION'
-```
-
-namespaceID, clusterID, blockpoolID, cTime и layoutVersion должны совпадать. Должен появиться новый fsimage и файл .md5. В последующих сообщениях лога Secondary не должно быть повторяющихся ошибок checkpoint. По умолчанию период — 3600 секунд, поэтому разовая команда позволяет не ждать час.
-
-## Исправленная ошибка 9 октября 2026
-
-До исправления лог Secondary каждую минуту содержал `Inconsistent checkpoint fields`. Его старые метаданные и текущий NameNode имели разные идентификаторы.
-
-На edge остановили только Secondary, переименовали его каталог в `/tmp/hadoop-hadoop/dfs/namesecondary.backup-20261009-154342`, запустили разовый checkpoint и вернули фоновый сервис. NameNode не форматировали; каталоги DataNode не меняли. Успешно созданы fsimage с txid 2148 и затем 2150; идентификаторы VERSION совпали с NameNode. Резервная копия сохранена.
-
-Это разовое восстановление устаревшего checkpoint, не шаг обычного deploy.sh. Не автоматизировать удаление checkpoint при любой ошибке и не форматировать NameNode для устранения такого сообщения.
-
-## UI и материалы для сдачи
-
-На Mac:
+Для просмотра UI выполнить на локальном компьютере:
 
 ```bash
 ssh -N -L 9870:10.15.0.11:9870 team@111.88.130.160
 ```
 
-Открыть `http://localhost:9870`, сохранить скриншот трех исправных DataNode. Добавить к сдаче вывод отчета, успешного checkpoint и проверок участника 4. Пароли и приватные ключи не публиковать.
+Открыть `http://localhost:9870`, вкладку Datanodes. Должны отображаться три исправные DataNode. [Скриншот проверки](../evidence/datanodes.png).
 
-## Статус проверки
+## 5. Остановка
 
-Подтверждено на серверах 9 октября 2026:
+Под `hadoop` сначала на edge, затем на NameNode:
 
-- NameNode видит 3 живые DataNode; отчет не показывает поврежденных, отсутствующих и недореплицированных блоков.
-- [Скриншот UI](../evidence/datanodes.png): фильтр All, все 3 DataNode с зелеными индикаторами и Last contact 1s.
-- Secondary создал checkpoint; VERSION совпадает с NameNode.
-- start-namenode.sh при работающем сервисе: «NameNode уже запущен».
-- init-namenode.sh при существующих метаданных: «Метаданные уже существуют. Форматирование пропущено».
-- start-secondary.sh при работающем сервисе пропускает запуск второго экземпляра.
-- stop-metadata.sh на edge остановил Secondary; start-secondary.sh затем запустил его. Последние предоставленные строки лога показывают запуск без ошибок; новый checkpoint после этого перезапуска отдельно не проверялся.
+```bash
+bash /home/hadoop/hdfs-hw1/scripts/stop-metadata.sh
+```
 
-Локально проверены синтаксис Bash и XML, защита инициализации на изолированных примерах с подставными командами.
-
-Не проверены на серверах: configure-metadata.sh, первичная инициализация нового пустого хранилища, остановка и запуск NameNode из остановленного состояния. Новые конфиги на серверах не применялись. Полный прогон развертывания предстоит выполнить совместно с частями 1 и 3.
-
-Для 10 баллов нужны все шаги без ошибок, инструкция и автоматизация развертывания в публичном репозитории. Дополнительные автотесты не обязательны. До сдачи объединить модули с общим скриптом, проверить развертывание, публичную доступность итоговой ветки и отправить ссылку до 12 октября 23:59.
+Для повторного запуска использовать `start-namenode.sh` на NameNode и `start-secondary.sh` на edge. Форматировать NameNode повторно не нужно.
