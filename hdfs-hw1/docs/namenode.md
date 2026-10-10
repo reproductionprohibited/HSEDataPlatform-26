@@ -15,7 +15,8 @@ NameNode запускается на `team-15-nn`, Secondary NameNode — на `
 ```bash
 cd /home/team/hdfs-hw1
 bash scripts/configure-metadata.sh
-sudo cp -R /home/team/hdfs-hw1 /home/hadoop/hdfs-hw1
+sudo mkdir -p /home/hadoop/hdfs-hw1
+sudo cp -R /home/team/hdfs-hw1/. /home/hadoop/hdfs-hw1/
 sudo chown -R hadoop:hadoop /home/hadoop/hdfs-hw1
 ```
 
