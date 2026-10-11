@@ -16,7 +16,7 @@ set -euo pipefail
 
 HADOOP_USER="${HADOOP_USER:-hadoop}"
 SSH_USER="${SSH_USER:-$USER}"
-HADOOP_HOME="${HADOOP_HOME:-/home/hadoop/hadoop}"
+HADOOP_HOME="${HADOOP_HOME:-/opt/hadoop}"
 # Узлы, на которые раскладываются конфиги. team-15-nn сюда не входит: к моменту
 # запуска NameNode уже настроен, и его конфиги перезаписывать нельзя (там могут
 # быть свойства NameNode, которых нет в этом скрипте). DataNode на team-15-nn
@@ -28,7 +28,7 @@ WORKERS=("team-15-nn" "team-15-00" "team-15-01")
 # Этот блок выполняется на каждом узле от имени hadoop.
 read -r -d '' CONFIG_SCRIPT <<'REMOTE' || true
 set -euo pipefail
-HADOOP_HOME="${HADOOP_HOME:-/home/hadoop/hadoop}"
+HADOOP_HOME="${HADOOP_HOME:-/opt/hadoop}"
 CONF_DIR="$HADOOP_HOME/etc/hadoop"
 
 if [[ ! -d "$CONF_DIR" ]]; then

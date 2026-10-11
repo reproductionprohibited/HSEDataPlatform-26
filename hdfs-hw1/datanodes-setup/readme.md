@@ -32,7 +32,7 @@ chmod +x hdfs-config-sessions.sh
 ./hdfs-config-sessions.sh
 ```
 
-Если Hadoop установлен не в `/home/hadoop/hadoop`, укажи правильный путь:
+Если Hadoop установлен не в `/opt/hadoop`, укажи правильный путь:
 
 ```bash
 HADOOP_HOME=/путь/к/hadoop ./hdfs-config-sessions.sh
