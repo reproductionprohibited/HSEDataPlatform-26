@@ -6,8 +6,8 @@
 |---|---|---|---|
 | — | `edge` (`team-15-en`) | Управляющий/jump-хост | — (отсюда запускаются скрипты Hadoop) |
 | Server 1 | `team-15-nn` | Master | NameNode + DataNode |
-| Server 2 | `team-15-00` | Вспомогательный | SecondaryNameNode + DataNode |
-| Server 3 | `team-15-01` | Worker | DataNode |
+| Server 2 | `team-15-00` | Worker | DataNode |
+| Server 3 | `team-15-01` | Вспомогательный | SecondaryNameNode + DataNode |
 
 Итого в кластере 3 DataNode (по одной на каждом сервере), что совпадает с `dfs.replication=3`: каждая реплика блока лежит на отдельном сервере.
 
@@ -16,7 +16,7 @@
 | Роль | Где задаётся |
 |---|---|
 | NameNode на `team-15-nn` | `fs.defaultFS` в `core-site.xml` |
-| SecondaryNameNode на `team-15-00` | `dfs.namenode.secondary.http-address` в `hdfs-site.xml` |
+| SecondaryNameNode на `team-15-01` | `dfs.namenode.secondary.http-address` в `hdfs-site.xml` |
 | DataNode на всех трёх серверах | файл `workers` на `edge` |
 
 Предполагается, что Hadoop уже установлен на всех узлах, NameNode на `team-15-nn` уже настроен (и отформатирован), пользователь `hadoop` существует, а с `edge` можно подключаться по SSH к `team-15-*` хостам и выполнять там `sudo -iu hadoop`.
@@ -75,14 +75,14 @@ HADOOP_HOME=/путь/к/hadoop ./hdfs-config-sessions.sh
     </property>
     <property>
         <name>dfs.namenode.secondary.http-address</name>
-        <value>team-15-00:9868</value>
+        <value>team-15-01:9868</value>
     </property>
 </configuration>
 ```
 
 - `fs.defaultFS` задаёт адрес NameNode (Server 1).
 - `dfs.replication=3` задаёт целевое количество реплик блоков; это значение само по себе не запускает DataNode.
-- `dfs.namenode.secondary.http-address` указывает, где поднимать SecondaryNameNode. `start-dfs.sh` берёт хост отсюда, поэтому SNN запускается на `team-15-00` (Server 2), а не рядом с NameNode. Без этого свойства (значение по умолчанию `0.0.0.0:9868`) SNN стартует на хосте, где запущен `start-dfs.sh`, — у нас это `edge`.
+- `dfs.namenode.secondary.http-address` указывает, где поднимать SecondaryNameNode. `start-dfs.sh` берёт хост отсюда, поэтому SNN запускается на `team-15-01` (Server 3), а не рядом с NameNode. Без этого свойства (значение по умолчанию `0.0.0.0:9868`) SNN стартует на хосте, где запущен `start-dfs.sh`, — у нас это `edge`.
 
 ## 2. Файл `workers` на `edge`
 
@@ -113,7 +113,7 @@ sudo -iu hadoop
 
 1. NameNode на `team-15-nn` (из `fs.defaultFS`);
 2. DataNode на каждом хосте из `workers` (`team-15-nn`, `team-15-00`, `team-15-01`);
-3. SecondaryNameNode на `team-15-00` (из `dfs.namenode.secondary.http-address`).
+3. SecondaryNameNode на `team-15-01` (из `dfs.namenode.secondary.http-address`).
 
 Если какой-то демон уже работает (например, NameNode), `start-dfs.sh` выведет `… is running as process …` и пойдёт дальше; это не ошибка.
 
@@ -121,7 +121,7 @@ sudo -iu hadoop
 
 ```bash
 "$HADOOP_HOME/bin/hdfs" getconf -secondaryNameNodes
-# team-15-00
+# team-15-01
 ```
 
 ## 4. Проверить состояние кластера
@@ -143,10 +143,10 @@ Live datanodes (3):
 | Сервер | Хост | Ожидаемые процессы `jps` |
 |---|---|---|
 | Server 1 (Master) | `team-15-nn` | `NameNode`, `DataNode` |
-| Server 2 (Вспомогательный) | `team-15-00` | `SecondaryNameNode`, `DataNode` |
-| Server 3 (Worker) | `team-15-01` | `DataNode` |
+| Server 2 (Worker) | `team-15-00` | `DataNode` |
+| Server 3 (Вспомогательный) | `team-15-01` | `SecondaryNameNode`, `DataNode` |
 
-Если раньше SecondaryNameNode уже запускался в другом месте — на `team-15-nn` или на `edge` (так бывает, если `start-dfs.sh` запускали без `dfs.namenode.secondary.http-address`), — проверь `jps` на обоих хостах и останови лишний процесс вручную: `stop-dfs.sh` с новым конфигом будет искать SNN уже на `team-15-00`, и старый процесс останется висеть.
+Если раньше SecondaryNameNode уже запускался в другом месте — на `team-15-nn` или на `edge` (так бывает, если `start-dfs.sh` запускали без `dfs.namenode.secondary.http-address`), — проверь `jps` на обоих хостах и останови лишний процесс вручную: `stop-dfs.sh` с новым конфигом будет искать SNN уже на `team-15-01`, и старый процесс останется висеть.
 
 ```bash
 # на хосте со старым SNN (team-15-nn или edge) от пользователя hadoop
@@ -159,4 +159,4 @@ Live datanodes (3):
 - Конфигурационные файлы должны указывать на `team-15-nn`, а не на `localhost`: на каждом сервере `localhost` означает именно этот сервер.
 - Если скрипт сообщает, что каталог конфигурации не найден, проверь значение `HADOOP_HOME` и наличие `$HADOOP_HOME/etc/hadoop` на всех узлах.
 - Если `dfsadmin -report` не показывает три живых DataNode, проверь SSH-доступ `hadoop` с `edge`, файл `workers` на `edge`, `jps`, конфиги и логи DataNode в `$HADOOP_HOME/logs/` на соответствующих серверах.
-- Веб-интерфейс NameNode в Hadoop 3 обычно доступен по адресу `http://team-15-nn:9870`, SecondaryNameNode — `http://team-15-00:9868`. Если браузер доступен только с локальной машины или `edge`, может понадобиться SSH-туннель.
+- Веб-интерфейс NameNode в Hadoop 3 обычно доступен по адресу `http://team-15-nn:9870`, SecondaryNameNode — `http://team-15-01:9868`. Если браузер доступен только с локальной машины или `edge`, может понадобиться SSH-туннель.

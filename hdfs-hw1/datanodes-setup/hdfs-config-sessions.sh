@@ -4,8 +4,8 @@
 #
 # Топология кластера (3 DataNode):
 #   Server 1  team-15-nn  Master          NameNode + DataNode
-#   Server 2  team-15-00  Вспомогательный SecondaryNameNode + DataNode
-#   Server 3  team-15-01  Worker          DataNode
+#   Server 2  team-15-00  Worker          DataNode
+#   Server 3  team-15-01  Вспомогательный SecondaryNameNode + DataNode
 #
 # Роли определяются конфигами и файлом workers; скрипт только раскладывает их:
 #   - NameNode          -> fs.defaultFS (core-site.xml)
@@ -56,7 +56,7 @@ cat > "$CONF_DIR/hdfs-site.xml" <<'XML'
     </property>
     <property>
         <name>dfs.namenode.secondary.http-address</name>
-        <value>team-15-00:9868</value>
+        <value>team-15-01:9868</value>
     </property>
 </configuration>
 XML
