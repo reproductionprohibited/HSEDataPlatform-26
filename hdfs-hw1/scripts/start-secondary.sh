@@ -4,8 +4,8 @@ export HADOOP_HOME="${HADOOP_HOME:-/opt/hadoop}"
 export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-$HADOOP_HOME/etc/hadoop}"
 export PATH="$HADOOP_HOME/bin:$PATH"
 HDFS="$HADOOP_HOME/bin/hdfs"
-if [[ "$(whoami)" != hadoop || "$(hostname -s)" != team-15-en ]]; then
-  echo "Запустите под hadoop на team-15-en." >&2
+if [[ "$(whoami)" != hadoop || "$(hostname -s)" != team-15-01 ]]; then
+  echo "Запустите под hadoop на team-15-01." >&2
   exit 1
 fi
 

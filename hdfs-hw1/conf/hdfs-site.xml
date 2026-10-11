@@ -6,6 +6,6 @@
   </property>
   <property>
     <name>dfs.namenode.secondary.http-address</name>
-    <value>team-15-en:9868</value>
+    <value>team-15-01:9868</value>
   </property>
 </configuration>

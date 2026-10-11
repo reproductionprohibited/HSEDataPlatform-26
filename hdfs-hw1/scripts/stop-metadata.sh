@@ -10,8 +10,8 @@ if [[ "$(whoami)" != hadoop ]]; then
 fi
 case "$(hostname -s)" in
   team-15-nn) daemon=namenode ;;
-  team-15-en) daemon=secondarynamenode ;;
-  *) echo "Ожидается team-15-nn или team-15-en." >&2; exit 1 ;;
+  team-15-01) daemon=secondarynamenode ;;
+  *) echo "Ожидается team-15-nn или team-15-01." >&2; exit 1 ;;
 esac
 "$HDFS" --daemon stop "$daemon"
 echo "Команда остановки $daemon выполнена; хранилище сохранено."

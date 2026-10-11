@@ -3,8 +3,8 @@ set -euo pipefail
 # Выполнять под team на каждом из двух узлов при остановленном сервисе.
 case "$(hostname -s)" in
   team-15-nn) storage=/tmp/hadoop-hadoop/dfs/name; service=NameNode ;;
-  team-15-en) storage=/tmp/hadoop-hadoop/dfs/namesecondary; service=SecondaryNameNode ;;
-  *) echo "Ожидается team-15-nn или team-15-en." >&2; exit 1 ;;
+  team-15-01) storage=/tmp/hadoop-hadoop/dfs/namesecondary; service=SecondaryNameNode ;;
+  *) echo "Ожидается team-15-nn или team-15-01." >&2; exit 1 ;;
 esac
 if [[ "$(whoami)" != team ]]; then
   echo "Запустите под team, у которого есть sudo." >&2
