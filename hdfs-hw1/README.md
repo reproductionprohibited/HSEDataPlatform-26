@@ -15,8 +15,8 @@
 |---|---|---|
 | team-15-en | 10.15.0.10 | Edge, управляющий сервер |
 | team-15-nn | 10.15.0.11 | NameNode, DataNode |
-| team-15-00 | 10.15.0.12 | Secondary NameNode, DataNode |
-| team-15-01 | 10.15.0.13 | DataNode |
+| team-15-00 | 10.15.0.12 | DataNode |
+| team-15-01 | 10.15.0.13 | Secondary NameNode, DataNode |
 
 ## Требования
 
@@ -38,14 +38,27 @@ Hadoop установлен в `/opt/hadoop`.
 ssh team@111.88.130.160
 ```
 
-После объединения скриптов команды запуск и остановка кластера предполагаются следующими:
+Первоначальная настройка выполняется при остановленном HDFS:
+
+1. Настроить и инициализировать NameNode на `team-15-nn` по [инструкции](docs/namenode.md), разделы 1–2. Существующий NameNode повторно не форматировать.
+2. Настроить DataNode и файл `workers` на edge по [инструкции](datanodes-setup/readme.md), разделы 1–2. При открытии удалённых сессий нажимать Ctrl+D для продолжения скрипта.
+3. Запустить кластер на edge под `hadoop`:
 
 ```bash
-./scripts/deploy.sh
-./scripts/stop.sh
+sudo -iu hadoop
+/opt/hadoop/sbin/start-dfs.sh
+/opt/hadoop/bin/hdfs dfsadmin -report
 ```
 
-Порядок первоначальной настройки и запуска будет дополнен после интеграции частей команды.
+Ожидается `Live datanodes (3)` и отсутствие мертвых узлов. Secondary NameNode запускается на `team-15-01`.
+
+Остановка кластера на edge под `hadoop`:
+
+```bash
+/opt/hadoop/sbin/stop-dfs.sh
+```
+
+Для повторного запуска выполнить `start-dfs.sh`.
 
 ## Веб-интерфейс NameNode
 
