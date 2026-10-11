@@ -14,8 +14,8 @@
 | Сервер | IP-адрес | Назначение |
 |---|---|---|
 | team-15-en | 10.15.0.10 | Edge, управляющий сервер |
-| team-15-nn | 10.15.0.11 | NameNode, Secondary NameNode, DataNode |
-| team-15-00 | 10.15.0.12 | DataNode |
+| team-15-nn | 10.15.0.11 | NameNode, DataNode |
+| team-15-00 | 10.15.0.12 | Secondary NameNode, DataNode |
 | team-15-01 | 10.15.0.13 | DataNode |
 
 ## Требования
@@ -26,7 +26,7 @@
 - SSH-доступ между серверами;
 - пользователь `hadoop` для запуска сервисов.
 
-Hadoop установлен на всех узлах. Путь к Hadoop задаётся через `HADOOP_HOME`.
+Hadoop установлен в `/opt/hadoop`.
 
 ## Развёртывание
 
