@@ -42,6 +42,27 @@
 </configuration>
 ```
 
+## Скрипты
+
+Нужны установленный Hadoop в `/opt/hadoop`, работающий HDFS и ключ `~/.ssh/team_internal` на edge.
+
+На локальном компьютере из корня репозитория:
+
+```bash
+scp -r hdfs-hw2 team@111.88.130.160:/home/team/
+ssh team@111.88.130.160
+```
+
+На edge под `team`, при остановленных YARN и HistoryServer:
+
+```bash
+cd /home/team/hdfs-hw2/yarn
+bash scripts/configure-yarn.sh
+bash scripts/start-yarn.sh
+```
+
+Конфиги из `conf/` устанавливаются на все узлы с резервной копией. Для повторного запуска достаточно `start-yarn.sh`. Остановка: `bash scripts/stop-yarn.sh`.
+
 ## Запуск
 
 От имени пользователя `hadoop` на серверах:
@@ -70,10 +91,26 @@
 
 ## Проверка Yarn
 
-Вызвать `yarn node -list` на `team-15-nn`. Должно быть `TotalNodes: 3` и список из трех нод, на трех серверах - nn/01/00
+Вызвать `yarn node -list` на `team-15-nn`. Должно быть `Total Nodes:3` и список из трех нод, на трех серверах - nn/01/00
 
 ## UI
 
-На локальной машине создать `ssh` туннель до `ResourceManager` и `JobHistory`:
+Для запуска скрипта нужны Bash и SSH (на Windows — Git Bash или WSL).
 
-`ssh -L 8088:team-15-nn:8088 -L 9870:team-15-nn:9870 -L 19888:team-15-nn:19888 user@edge`
+На локальном компьютере из корня репозитория:
+
+```bash
+bash hdfs-hw2/yarn/scripts/open-ui.sh
+```
+
+Адреса в браузере:
+
+- ResourceManager: http://localhost:8088
+- HistoryServer: http://localhost:19888
+- NodeManager nn / 00 / 01: http://localhost:8042 / http://localhost:8043 / http://localhost:8044
+- NameNode и Secondary: http://localhost:9870 / http://localhost:9868
+- DataNode nn / 00 / 01: http://localhost:9864 / http://localhost:9865 / http://localhost:9866
+
+Закрыть туннель: `Ctrl+C`.
+
+Скриншоты: [кластер](evidence/cluster.png), [узлы](evidence/nodes.png), [HistoryServer](evidence/job_history.png).
