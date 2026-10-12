@@ -16,6 +16,11 @@ set -euo pipefail
 
 HADOOP_USER="${HADOOP_USER:-hadoop}"
 SSH_USER="${SSH_USER:-$USER}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/team_internal}"
+if [[ ! -r "$SSH_KEY" ]]; then
+    echo "Недоступен SSH-ключ: $SSH_KEY" >&2
+    exit 1
+fi
 HADOOP_HOME="${HADOOP_HOME:-/opt/hadoop}"
 # Узлы, на которые раскладываются конфиги. team-15-nn сюда не входит: к моменту
 # запуска NameNode уже настроен, и его конфиги перезаписывать нельзя (там могут
@@ -78,14 +83,15 @@ printf '%s\n' "${WORKERS[@]}" | sudo -iu "$HADOOP_USER" env HADOOP_HOME="$HADOOP
 
 # На каждом узле записываем конфиги, затем оставляем интерактивный shell.
 # Ctrl+D завершает shell пользователя hadoop и SSH, после чего цикл идёт дальше.
-# Shell возвращает код последней команды в нём, поэтому ошибку ssh не считаем
-# фатальной: иначе set -e оборвал бы цикл, не дойдя до следующих узлов.
+# При ошибке SSH или настройки прекращаем выполнение.
 for host in "${HOSTS[@]}"; do
     echo
     echo "=== SSH -> ${host}: записываю конфиги ==="
-    ssh -t "${SSH_USER}@${host}" \
-        "sudo -iu '${HADOOP_USER}' env HADOOP_HOME='${HADOOP_HOME}' bash -lc \"printf '%s' '${CONFIG_B64}' | base64 -d | bash && exec bash -l\"" \
-        || echo "WARN: ${host}: ssh-сессия завершилась с ошибкой, проверь конфиги на узле" >&2
+    if ! ssh -t -i "$SSH_KEY" -o IdentitiesOnly=yes "${SSH_USER}@${host}" \
+        "sudo -iu '${HADOOP_USER}' env HADOOP_HOME='${HADOOP_HOME}' bash -lc \"printf '%s' '${CONFIG_B64}' | base64 -d | bash && exec bash -l\""; then
+        echo "Ошибка SSH или настройки на ${host}." >&2
+        exit 1
+    fi
 done
 
 echo
