@@ -26,7 +26,51 @@
 - SSH-доступ между серверами;
 - пользователь `hadoop` для запуска сервисов.
 
-Hadoop установлен в `/opt/hadoop`.
+Hadoop устанавливается в `/opt/hadoop`. Для подготовки выданных курсом серверов нужен пользователь `team` с sudo без пароля и ключ `~/.ssh/team_internal` на edge.
+
+## Установка Java и Hadoop
+
+На своем компьютере из корня репозитория скопировать файлы на edge:
+
+```bash
+scp -r hdfs-hw1 team@111.88.130.160:/home/team/
+ssh team@111.88.130.160
+```
+
+На edge под `team` проверить доступ к внутренним узлам. При первом подключении сверить ключ сервера и сохранить его:
+
+```bash
+for node in team-15-nn team-15-00 team-15-01; do
+  ssh -i ~/.ssh/team_internal team@$node hostname
+done
+```
+
+Затем выполнить скрипты установки в следующем порядке:
+
+```bash
+cd /home/team/hdfs-hw1
+bash scripts/apply-fix-to-hosts.sh
+bash scripts/apply-users-to-hosts.sh
+bash scripts/apply-java-to-hosts.sh
+bash scripts/download-hadoop.sh
+bash scripts/distribute-hadoop.sh
+bash scripts/apply-hadoop-to-hosts.sh
+bash scripts/setup-ssh.sh
+```
+
+Скрипты `apply-*` выполняют настройку на всех четырех узлах. Архив Hadoop проверяется по SHA-512. `setup-ssh.sh` настраивает доступ пользователя `hadoop` с edge к узлам кластера.
+
+Для проверки скопировать файлы в домашний каталог `hadoop` на edge:
+
+```bash
+sudo mkdir -p /home/hadoop/hdfs-hw1
+sudo cp -R /home/team/hdfs-hw1/. /home/hadoop/hdfs-hw1/
+sudo chown -R hadoop:hadoop /home/hadoop/hdfs-hw1
+sudo -iu hadoop bash /home/hadoop/hdfs-hw1/scripts/check-ssh.sh
+sudo -iu hadoop bash /home/hadoop/hdfs-hw1/scripts/check-hadoop.sh
+```
+
+При первом SSH-подключении под `hadoop` также сохранить сверенные ключи серверов. В проверке установки ожидаются Java 17 и Hadoop 3.5.0.
 
 ## Развёртывание
 
