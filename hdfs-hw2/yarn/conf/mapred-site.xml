@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<property>
+		<name>mapreduce.framework.name</name>
+		<value>yarn</value>
+	</property>
+	<property>
+		<name>mapreduce.application.classpath</name>
+		<value>$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*</value>
+	</property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>team-15-nn:10020</value>
+    </property>
+</configuration>
