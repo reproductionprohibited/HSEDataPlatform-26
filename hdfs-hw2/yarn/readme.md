@@ -111,6 +111,6 @@ bash hdfs-hw2/yarn/scripts/open-ui.sh
 - NameNode и Secondary: http://localhost:9870 / http://localhost:9868
 - DataNode nn / 00 / 01: http://localhost:9864 / http://localhost:9865 / http://localhost:9866
 
-Доступа через localhost достаточно по уточнению преподавателя. Завершить туннель — Ctrl+C.
+Закрыть туннель: `Ctrl+C`.
 
 Скриншоты: [кластер](evidence/cluster.png), [узлы](evidence/nodes.png), [HistoryServer](evidence/job_history.png).
